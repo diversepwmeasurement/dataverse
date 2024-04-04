@@ -1,20 +1,19 @@
+jobs:
+  dispatch:
+    if: ${{ github.repository_owner == 'IQSS' }}
+    runs-on: self-hosted
+    steps:
+    - continue-on-error: true
+      name: Dispatch
+      uses: peter-evans/slash-command-dispatch@v3
+      with:
+        commands: 'push-image
+
+          '
+        permission: write
+        repository: IQSS/dataverse
+        token: ${{ secrets.GHCR_TOKEN }}
 name: PR Comment Commands
 on:
-    issue_comment:
-        types: [created]
-jobs:
-    dispatch:
-        # Avoid being triggered by forks in upstream
-        if: ${{ github.repository_owner == 'IQSS' }}
-        runs-on: ubuntu-latest
-        steps:
-            - name: Dispatch
-              uses: peter-evans/slash-command-dispatch@v3
-              with:
-                  # This token belongs to @dataversebot and has sufficient scope.
-                  token: ${{ secrets.GHCR_TOKEN }}
-                  commands: |
-                      push-image
-                  repository: IQSS/dataverse
-                  # Commenter must have at least write permission to repo to trigger dispatch
-                  permission: write
+  repository_dispatch:
+    types: trigger-ga___pr_comment_commands.yml

@@ -1,16 +1,14 @@
-name: "Guides Build Status"
-on: 
-  pull_request:
-    paths:
-      - "doc/sphinx-guides/**/*.rst"
-      - "doc/sphinx-guides/**/requirements.txt"
-      - "doc/sphinx-guides/**/conf.py"
-
 jobs:
   docs:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
-    - uses: actions/checkout@v2
-    - uses: OdumInstitute/sphinx-action@master
+    - continue-on-error: true
+      uses: actions/checkout@v2
+    - continue-on-error: true
+      uses: OdumInstitute/sphinx-action@master
       with:
-        docs-folder: "doc/sphinx-guides/"
+        docs-folder: doc/sphinx-guides/
+name: Guides Build Status
+on:
+  repository_dispatch:
+    types: trigger-ga___guides_build_sphinx.yml

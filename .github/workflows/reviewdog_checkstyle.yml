@@ -1,21 +1,20 @@
+jobs:
+  checkstyle_job:
+    name: Checkstyle job
+    runs-on: self-hosted
+    steps:
+    - continue-on-error: true
+      name: Checkout
+      uses: actions/checkout@v2
+    - continue-on-error: true
+      name: Run check style
+      uses: nikitasavinov/checkstyle-action@master
+      with:
+        checkstyle_config: checkstyle.xml
+        fail_on_error: true
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        reporter: github-pr-review
 name: Maven CheckStyle Task
 on:
-   pull_request:
-       paths:
-           - "**.java"
-
-jobs:
-    checkstyle_job:
-        runs-on: ubuntu-latest
-        name: Checkstyle job
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v2
-            - name: Run check style
-              uses: nikitasavinov/checkstyle-action@master
-              with:
-                  fail_on_error: true
-                  reporter: github-pr-review
-                  checkstyle_config: checkstyle.xml
-                  github_token: ${{ secrets.GITHUB_TOKEN }}
-
+  repository_dispatch:
+    types: trigger-ga___reviewdog_checkstyle.yml

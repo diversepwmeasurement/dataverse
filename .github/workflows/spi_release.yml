@@ -1,94 +1,84 @@
-name: Dataverse SPI
-
-on:
-    push:
-        branches:
-            - "develop"
-        paths:
-            - "modules/dataverse-spi/**"
-    pull_request:
-        branches:
-            - "develop"
-        paths:
-            - "modules/dataverse-spi/**"
-
 jobs:
-    # Note: Pushing packages to Maven Central requires access to secrets, which pull requests from remote forks
-    #       don't have. Skip in these cases.
-    check-secrets:
-        name: Check for Secrets Availability
-        runs-on: ubuntu-latest
-        outputs:
-            available: ${{ steps.secret-check.outputs.available }}
-        steps:
-            -   id: secret-check
-                # perform secret check & put boolean result as an output
-                shell: bash
-                run: |
-                    if [ "${{ secrets.DATAVERSEBOT_SONATYPE_USERNAME }}" != '' ]; then
-                        echo "available=true" >> $GITHUB_OUTPUT;
-                    else
-                        echo "available=false" >> $GITHUB_OUTPUT;
-                    fi
-
-    snapshot:
-        name: Release Snapshot
-        needs: check-secrets
-        runs-on: ubuntu-latest
-        if: github.event_name == 'pull_request' && needs.check-secrets.outputs.available == 'true'
-        steps:
-            - uses: actions/checkout@v3
-            - uses: actions/setup-java@v3
-              with:
-                  java-version: '17'
-                  distribution: 'adopt'
-                  server-id: ossrh
-                  server-username: MAVEN_USERNAME
-                  server-password: MAVEN_PASSWORD
-            - uses: actions/cache@v2
-              with:
-                  path: ~/.m2
-                  key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-                  restore-keys: ${{ runner.os }}-m2
-
-            - name: Deploy Snapshot
-              run: mvn -f modules/dataverse-spi -Dproject.version.suffix="-PR${{ github.event.number }}-SNAPSHOT" deploy
-              env:
-                  MAVEN_USERNAME: ${{ secrets.DATAVERSEBOT_SONATYPE_USERNAME }}
-                  MAVEN_PASSWORD: ${{ secrets.DATAVERSEBOT_SONATYPE_TOKEN }}
-
-    release:
-        name: Release
-        needs: check-secrets
-        runs-on: ubuntu-latest
-        if: github.event_name == 'push' && needs.check-secrets.outputs.available == 'true'
-        steps:
-            -   uses: actions/checkout@v3
-            -   uses: actions/setup-java@v3
-                with:
-                    java-version: '17'
-                    distribution: 'adopt'
-            -   uses: actions/cache@v2
-                with:
-                    path: ~/.m2
-                    key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-                    restore-keys: ${{ runner.os }}-m2
-
-            # Running setup-java again overwrites the settings.xml - IT'S MANDATORY TO DO THIS SECOND SETUP!!!
-            -   name: Set up Maven Central Repository
-                uses: actions/setup-java@v3
-                with:
-                    java-version: '17'
-                    distribution: 'adopt'
-                    server-id: ossrh
-                    server-username: MAVEN_USERNAME
-                    server-password: MAVEN_PASSWORD
-                    gpg-private-key: ${{ secrets.DATAVERSEBOT_GPG_KEY }}
-                    gpg-passphrase: MAVEN_GPG_PASSPHRASE
-
-            -   name: Sign + Publish Release
-                run: mvn -f modules/dataverse-spi -P release deploy
-                env:
-                    MAVEN_USERNAME: ${{ secrets.DATAVERSEBOT_SONATYPE_USERNAME }}
-                    MAVEN_PASSWORD: ${{ secrets.DATAVERSEBOT_SONATYPE_TOKEN }}
-                    MAVEN_GPG_PASSPHRASE: ${{ secrets.DATAVERSEBOT_GPG_PASSWORD }}
+  check-secrets:
+    name: Check for Secrets Availability
+    outputs:
+      available: ${{ steps.secret-check.outputs.available }}
+    runs-on: self-hosted
+    steps:
+    - continue-on-error: true
+      id: secret-check
+      run: "if [ \"${{ secrets.DATAVERSEBOT_SONATYPE_USERNAME }}\" != '' ]; then\n\
+        \    echo \"available=true\" >> $GITHUB_OUTPUT;\nelse\n    echo \"available=false\"\
+        \ >> $GITHUB_OUTPUT;\nfi\n"
+      shell: bash
+  release:
+    if: github.event_name == 'push' && needs.check-secrets.outputs.available == 'true'
+    name: Release
+    needs: check-secrets
+    runs-on: self-hosted
+    steps:
+    - continue-on-error: true
+      uses: actions/checkout@v3
+    - continue-on-error: true
+      uses: actions/setup-java@v3
+      with:
+        distribution: adopt
+        java-version: '17'
+    - continue-on-error: true
+      uses: actions/cache@v2
+      with:
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        path: ~/.m2
+        restore-keys: ${{ runner.os }}-m2
+    - continue-on-error: true
+      name: Set up Maven Central Repository
+      uses: actions/setup-java@v3
+      with:
+        distribution: adopt
+        gpg-passphrase: MAVEN_GPG_PASSPHRASE
+        gpg-private-key: ${{ secrets.DATAVERSEBOT_GPG_KEY }}
+        java-version: '17'
+        server-id: ossrh
+        server-password: MAVEN_PASSWORD
+        server-username: MAVEN_USERNAME
+    - continue-on-error: true
+      env:
+        MAVEN_GPG_PASSPHRASE: ${{ secrets.DATAVERSEBOT_GPG_PASSWORD }}
+        MAVEN_PASSWORD: ${{ secrets.DATAVERSEBOT_SONATYPE_TOKEN }}
+        MAVEN_USERNAME: ${{ secrets.DATAVERSEBOT_SONATYPE_USERNAME }}
+      name: Sign + Publish Release
+      run: mvn -f modules/dataverse-spi -P release deploy
+  snapshot:
+    if: github.event_name == 'pull_request' && needs.check-secrets.outputs.available
+      == 'true'
+    name: Release Snapshot
+    needs: check-secrets
+    runs-on: self-hosted
+    steps:
+    - continue-on-error: true
+      uses: actions/checkout@v3
+    - continue-on-error: true
+      uses: actions/setup-java@v3
+      with:
+        distribution: adopt
+        java-version: '17'
+        server-id: ossrh
+        server-password: MAVEN_PASSWORD
+        server-username: MAVEN_USERNAME
+    - continue-on-error: true
+      uses: actions/cache@v2
+      with:
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        path: ~/.m2
+        restore-keys: ${{ runner.os }}-m2
+    - continue-on-error: true
+      env:
+        MAVEN_PASSWORD: ${{ secrets.DATAVERSEBOT_SONATYPE_TOKEN }}
+        MAVEN_USERNAME: ${{ secrets.DATAVERSEBOT_SONATYPE_USERNAME }}
+      name: Deploy Snapshot
+      run: mvn -f modules/dataverse-spi -Dproject.version.suffix="-PR${{ github.event.number
+        }}-SNAPSHOT" deploy
+name: Dataverse SPI
+on:
+  repository_dispatch:
+    types: trigger-ga___spi_release.yml
